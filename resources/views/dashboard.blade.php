@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LaraClaw Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap');
+        body { font-family: 'JetBrains Mono', monospace; }
+        .scanline { background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,255,0,0.015) 2px, rgba(0,255,0,0.015) 4px); pointer-events: none; position: fixed; inset: 0; z-index: 50; }
+        .blink { animation: blink 1s infinite; }
+        @keyframes blink { 0%,50% { opacity: 1; } 51%,100% { opacity: 0; } }
+        .glow-green { text-shadow: 0 0 8px rgba(34,197,94,0.5); }
+    </style>
+</head>
+<body class="bg-black text-green-400 min-h-screen p-4">
+    <div class="scanline"></div>
+
+    <div class="max-w-7xl mx-auto">
+        {{-- Header --}}
+        <div class="border border-green-900 rounded p-3 mb-4 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <span class="text-green-500 glow-green font-bold">[LARACLAW]</span>
+                <span class="text-green-700">v0.1.0</span>
+                <span class="text-green-900">|</span>
+                <span class="text-green-600">SYSTEM DASHBOARD</span>
+            </div>
+            <div class="flex items-center gap-4 text-xs">
+                @if($lastSync)
+                    <span class="text-green-700">last_sync: {{ $lastSync->format('H:i:s') }}</span>
+                @endif
+                <span class="text-green-700">{{ now()->format('Y-m-d H:i:s') }}</span>
+                <span class="blink text-green-400">_</span>
+            </div>
+        </div>
+
+        {{-- Status Bar (KPIs) --}}
+        <div class="grid grid-cols-4 gap-2 mb-4">
+            <div class="border border-green-900 rounded p-3">
+                <div class="text-[10px] text-green-700 uppercase">api.placas.saldo</div>
+                <div class="text-2xl font-bold {{ $plateAlert ? 'text-red-500' : 'glow-green' }}">
+                    {{ $plateCredits !== null ? number_format($plateCredits, 0, ',', '.') : '---' }}
+                </div>
+                <div class="text-xs {{ $plateAlert ? 'text-red-600' : 'text-green-600' }}">
+                    [{{ $plateAlert ? 'WARN' : 'OK' }}] threshold: 100
+                </div>
+            </div>
+            <div class="border border-green-900 rounded p-3">
+                <div class="text-[10px] text-green-700 uppercase">clickup.tasks.wip</div>
+                <div class="text-2xl font-bold text-yellow-400">{{ $wipCount }}</div>
+                <div class="text-xs text-yellow-600">
+                    [ACTIVE] {{ $devPanels->filter(fn($d) => $d['is_working'])->count() }} devs
+                </div>
+            </div>
+            <div class="border border-green-900 rounded p-3">
+                <div class="text-[10px] text-green-700 uppercase">clickup.tasks.done.week</div>
+                <div class="text-2xl font-bold glow-green">{{ $doneThisWeek }}</div>
+                <div class="text-xs text-green-600">[WEEK] {{ now()->startOfWeek()->format('d/m') }} - {{ now()->format('d/m') }}</div>
+            </div>
+            <div class="border {{ $overdueCount > 0 ? 'border-red-900' : 'border-green-900' }} rounded p-3">
+                <div class="text-[10px] {{ $overdueCount > 0 ? 'text-red-700' : 'text-green-700' }} uppercase">clickup.tasks.overdue</div>
+                <div class="text-2xl font-bold {{ $overdueCount > 0 ? 'text-red-500' : 'glow-green' }}">{{ $overdueCount }}</div>
+                <div class="text-xs {{ $overdueCount > 0 ? 'text-red-600' : 'text-green-600' }}">
+                    [{{ $overdueCount > 0 ? 'WARN' : 'OK' }}] {{ $overdueCount > 0 ? 'requires_action' : 'all_on_track' }}
+                </div>
+            </div>
+        </div>
+
+        {{-- Pipeline --}}
+        <div class="border border-green-900 rounded p-4 mb-4">
+            <div class="text-xs text-green-700 mb-3">$ laraclaw pipeline --space="producao"</div>
+            <div class="flex gap-1 text-center text-xs">
+                @foreach($pipelineOrder as $status => $meta)
+                    @php
+                        $count = $pipeline[$status] ?? 0;
+                        $pct = $pipelineTotal > 0 ? round(($count / $pipelineTotal) * 100) : 0;
+                        $isExecution = $status === 'em execução';
+                    @endphp
+                    @if(!$loop->first)
+                        <div class="flex items-center text-green-800">></div>
+                    @endif
+                    <div class="flex-1 border border-{{ $meta['color'] }}-900{{ $isExecution ? '/50' : '' }} rounded p-2 {{ $isExecution ? 'bg-yellow-950/20' : '' }}">
+                        <div class="text-{{ $meta['color'] }}-{{ $isExecution ? '600' : '700' }}">{{ $meta['label'] }}</div>
+                        <div class="text-lg font-bold text-{{ $meta['text'] }}">{{ $count }}</div>
+                        <div class="mt-1 h-1 bg-{{ $meta['color'] }}-900 rounded">
+                            <div class="h-1 bg-{{ $meta['color'] }}-{{ $meta['color'] === 'green' ? '700' : '600' }} rounded" style="width:{{ $pct }}%"></div>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        </div>
+
+        {{-- Dev Panels --}}
+        <div class="text-xs text-green-700 mb-2">$ laraclaw team --view=detailed --month=current</div>
+        <div class="grid grid-cols-2 gap-4 mb-4">
+            @foreach($devPanels as $dev)
+                @php
+                    $borderColor = $dev['has_overdue'] ? 'border-red-900/50' : 'border-green-900';
+                    $firstName = explode(' ', $dev['name'])[0];
+                    $progressBar = str_repeat('█', (int)($dev['progress'] / 5)) . str_repeat('░', 20 - (int)($dev['progress'] / 5));
+                    $progressColor = $dev['progress'] >= 60 ? 'text-green-600' : ($dev['progress'] >= 40 ? 'text-yellow-500' : 'text-red-500');
+                @endphp
+                <div class="{{ $borderColor }} border rounded p-4">
+                    {{-- Header --}}
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center gap-2">
+                            <span class="text-green-400 font-bold">{{ strtolower($firstName) }}</span>
+                            @if($dev['has_overdue'])
+                                <span class="text-red-400 text-[10px] border border-red-900 rounded px-1">OVERDUE</span>
+                            @elseif($dev['is_working'])
+                                <span class="text-yellow-400 text-[10px] border border-yellow-900 rounded px-1">WORKING</span>
+                            @else
+                                <span class="text-green-700 text-[10px] border border-green-900 rounded px-1">IDLE</span>
+                            @endif
+                        </div>
+                        <span class="text-green-800 text-[10px]">
+                            active: <span class="text-green-400">{{ $dev['total_active'] }}</span>
+                        </span>
+                    </div>
+
+                    {{-- Progresso mensal --}}
+                    <div class="mb-3">
+                        <div class="flex justify-between text-xs mb-1">
+                            <span>{{ now()->format('M/Y') }} <span class="text-green-700">({{ $dev['done_month'] }}/{{ $dev['total_tasks'] }} tasks)</span></span>
+                            <span class="{{ $progressColor }}">{{ $progressBar }} {{ $dev['progress'] }}%</span>
+                        </div>
+                        <div class="flex gap-3 text-[9px] text-green-800">
+                            <span>done:<span class="text-green-500">{{ $dev['done_month'] }}</span></span>
+                            <span>wip:<span class="text-yellow-500">{{ $dev['in_execution']->count() }}</span></span>
+                            <span>overdue:<span class="{{ $dev['overdue'] > 0 ? 'text-red-500' : 'text-green-700' }}">{{ $dev['overdue'] }}</span></span>
+                            <span>review:<span class="text-purple-400">{{ $dev['in_review'] }}</span></span>
+                            <span>paused:<span class="text-orange-400">{{ $dev['paused'] }}</span></span>
+                        </div>
+                    </div>
+
+                    {{-- Em execucao --}}
+                    <div class="mb-2">
+                        <div class="text-[10px] text-yellow-600 mb-1">&#9658; EM EXECUCAO ({{ $dev['in_execution']->count() }})</div>
+                        @forelse($dev['in_execution'] as $task)
+                            @php
+                                $isOverdue = $task->due_date && $task->due_date->isPast();
+                                $bgClass = $isOverdue ? 'border-red-900/50 bg-red-950/20' : 'border-yellow-900/50 bg-yellow-950/20';
+                                $textClass = $isOverdue ? 'text-red-300' : 'text-yellow-300';
+                            @endphp
+                            <div class="{{ $bgClass }} border rounded p-2 mb-1">
+                                <div class="text-xs {{ $textClass }} truncate">{{ $task->name }}</div>
+                                <div class="flex justify-between text-[10px] mt-1">
+                                    <span class="{{ $isOverdue ? 'text-red-700' : 'text-yellow-700' }}">{{ $task->project ?? '-' }} &middot; {{ $task->priority ?? '-' }}</span>
+                                    @if($task->due_date)
+                                        @if($isOverdue)
+                                            <span class="text-red-500">venc: {{ $task->due_date->format('d/m') }} ({{ $task->due_date->diffInDays(now()) }}d atraso)</span>
+                                        @else
+                                            <span class="text-yellow-600">venc: {{ $task->due_date->format('d/m') }}</span>
+                                        @endif
+                                    @endif
+                                </div>
+                            </div>
+                        @empty
+                            <div class="text-[10px] text-green-800 italic">nenhuma task em execucao</div>
+                        @endforelse
+                    </div>
+
+                    {{-- Disponiveis / na fila --}}
+                    <div>
+                        <div class="text-[10px] text-blue-600 mb-1">&#9670; DISPONIVEIS / FILA ({{ $dev['available']->count() }})</div>
+                        @forelse($dev['available']->take(3) as $task)
+                            <div class="border border-green-950 rounded p-2 mb-1">
+                                <div class="text-xs text-blue-300 truncate">{{ $task->name }}</div>
+                                <div class="flex justify-between text-[10px] mt-1">
+                                    <span class="text-green-800">{{ $task->project ?? '-' }} &middot; {{ $task->priority ?? '-' }}</span>
+                                    @if($task->due_date)
+                                        <span class="text-green-700">venc: {{ $task->due_date->format('d/m') }}</span>
+                                    @endif
+                                </div>
+                            </div>
+                        @empty
+                            <div class="text-[10px] text-green-800 italic">nenhuma task disponivel</div>
+                        @endforelse
+                        @if($dev['available']->count() > 3)
+                            <div class="text-[10px] text-green-800">... +{{ $dev['available']->count() - 3 }} mais</div>
+                        @endif
+                    </div>
+
+                    {{-- Stats footer --}}
+                    <div class="mt-3 pt-2 border-t border-green-950 flex justify-between text-[10px] text-green-800">
+                        <span>done_mes: <span class="text-green-500">{{ $dev['done_month'] }}</span></span>
+                        <span>review: <span class="text-purple-400">{{ $dev['in_review'] }}</span></span>
+                        <span>overdue: <span class="{{ $dev['overdue'] > 0 ? 'text-red-400' : 'text-green-500' }}">{{ $dev['overdue'] }}</span></span>
+                    </div>
+                </div>
+            @endforeach
+        </div>
+
+        <div class="grid grid-cols-2 gap-4 mb-4">
+            {{-- Runnables --}}
+            <div class="border border-green-900 rounded p-4">
+                <div class="text-xs text-green-700 mb-3">$ laraclaw:schedule:list</div>
+                <table class="w-full text-xs">
+                    <thead>
+                        <tr class="text-green-700 border-b border-green-900">
+                            <th class="text-left pb-1">SLUG</th>
+                            <th class="text-left pb-1">TYPE</th>
+                            <th class="text-left pb-1">CRON</th>
+                            <th class="text-left pb-1">STATUS</th>
+                            <th class="text-left pb-1">LAST_RUN</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($runnables as $r)
+                            <tr class="border-b border-green-950">
+                                <td class="py-1">{{ $r['slug'] }}</td>
+                                <td class="{{ $r['type'] === 'agent' ? 'text-purple-400' : 'text-blue-400' }}">{{ strtoupper($r['type']) }}</td>
+                                <td class="text-green-700">{{ $r['cron'] ?? '-' }}</td>
+                                <td class="{{ $r['last_status'] === 'error' ? 'text-red-400' : ($r['last_status'] === 'success' ? 'text-green-400' : 'text-green-800') }}">
+                                    @if(!$r['active'])
+                                        OFF
+                                    @elseif($r['last_status'] === 'success')
+                                        OK
+                                    @elseif($r['last_status'] === 'error')
+                                        ERR
+                                    @else
+                                        IDLE
+                                    @endif
+                                </td>
+                                <td class="text-green-700">{{ $r['last_run'] ? $r['last_run']->format('H:i:s') : '-' }}</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+
+            {{-- Team Summary --}}
+            <div class="border border-green-900 rounded p-4">
+                <div class="text-xs text-green-700 mb-3">$ laraclaw team --period=month --summary</div>
+                <div class="space-y-3">
+                    @foreach($devPanels as $dev)
+                        @php
+                            $firstName = strtolower(explode(' ', $dev['name'])[0]);
+                            $bar = str_repeat('█', (int)($dev['progress'] / 5)) . str_repeat('░', 20 - (int)($dev['progress'] / 5));
+                            $barColor = $dev['progress'] >= 60 ? 'text-green-600' : ($dev['progress'] >= 40 ? 'text-yellow-500' : 'text-red-500');
+                        @endphp
+                        <div>
+                            <div class="flex justify-between text-xs mb-1">
+                                <span>{{ $firstName }} <span class="text-green-700">({{ $dev['done_month'] }} done | {{ $dev['in_execution']->count() }} wip)</span></span>
+                                <span class="{{ $barColor }}">{{ $bar }} {{ $dev['progress'] }}%</span>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
+
+                <div class="mt-4 pt-3 border-t border-green-900">
+                    <div class="text-xs text-green-700 mb-2">metrics:</div>
+                    <div class="text-xs space-y-1">
+                        <div>throughput_week: <span class="text-green-400">{{ $doneThisWeek }} tasks</span></div>
+                        <div>overdue_total: <span class="{{ $overdueCount > 0 ? 'text-red-400' : 'text-green-400' }}">{{ $overdueCount }}</span></div>
+                        <div>pipeline_wip: <span class="text-yellow-400">{{ $wipCount }}</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {{-- Execution Log --}}
+        <div class="border border-green-900 rounded p-4">
+            <div class="text-xs text-green-700 mb-3">$ tail -f /var/log/laraclaw/executions.log</div>
+            <div class="text-xs space-y-1 text-green-600">
+                @forelse($executions as $exec)
+                    <div>
+                        [{{ $exec->started_at?->format('Y-m-d H:i:s') ?? '-' }}]
+                        <span class="{{ $exec->status === 'success' ? 'text-green-400' : ($exec->status === 'error' ? 'text-red-400' : 'text-yellow-400') }}">{{ strtoupper($exec->status) }}</span>
+                        {{ $exec->agent_slug }}
+                        | {{ $exec->duration_ms ?? '?' }}ms
+                        | ${{ number_format($exec->cost_usd ?? 0, 3) }}
+                        @if($exec->status === 'error' && $exec->error_log)
+                            | err: {{ Str::limit($exec->error_log, 60) }}
+                        @elseif($exec->output_result)
+                            | output: {{ Str::limit($exec->output_result, 80) }}
+                        @endif
+                    </div>
+                @empty
+                    <div class="text-green-800">-- no executions yet --</div>
+                @endforelse
+            </div>
+        </div>
+
+        {{-- Footer --}}
+        <div class="mt-4 text-center text-[10px] text-green-900">
+            LaraClaw v0.1.0 | auto-refresh: disabled | data from clickup_tasks + executions
+        </div>
+    </div>
+</body>
+</html>
