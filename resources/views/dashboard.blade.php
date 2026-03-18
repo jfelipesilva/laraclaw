@@ -12,6 +12,10 @@
         .blink { animation: blink 1s infinite; }
         @keyframes blink { 0%,50% { opacity: 1; } 51%,100% { opacity: 0; } }
         .glow-green { text-shadow: 0 0 8px rgba(34,197,94,0.5); }
+        @keyframes border-blink-red { 0%,50% { border-color: rgb(239,68,68); } 51%,100% { border-color: rgb(30,10,10); } }
+        @keyframes border-blink-yellow { 0%,50% { border-color: rgb(234,179,8); } 51%,100% { border-color: rgb(30,25,10); } }
+        .blink-border-red { animation: border-blink-red 1s infinite; }
+        .blink-border-yellow { animation: border-blink-yellow 1s infinite; }
     </style>
 </head>
 <body class="bg-black text-green-400 min-h-screen p-4">
@@ -96,12 +100,28 @@
         <div class="grid grid-cols-2 gap-4 mb-4">
             @foreach($devPanels as $dev)
                 @php
-                    $borderColor = $dev['has_overdue'] ? 'border-red-900/50' : 'border-green-900';
                     $firstName = explode(' ', $dev['name'])[0];
                     $progressBar = str_repeat('█', (int)($dev['progress'] / 5)) . str_repeat('░', 20 - (int)($dev['progress'] / 5));
                     $progressColor = $dev['progress'] >= 60 ? 'text-green-600' : ($dev['progress'] >= 40 ? 'text-yellow-500' : 'text-red-500');
+                    $progressBarPrev = str_repeat('█', (int)($dev['progress_prev'] / 5)) . str_repeat('░', 20 - (int)($dev['progress_prev'] / 5));
+                    $progressColorPrev = $dev['progress_prev'] >= 60 ? 'text-green-600' : ($dev['progress_prev'] >= 40 ? 'text-yellow-500' : 'text-red-500');
+
+                    $noExecution = $dev['in_execution']->count() === 0;
+                    $noAvailable = $dev['available']->count() === 0;
+
+                    $borderClass = 'border-green-900';
+                    $blinkClass = '';
+                    if ($noExecution) {
+                        $borderClass = '';
+                        $blinkClass = 'blink-border-red';
+                    } elseif ($noAvailable) {
+                        $borderClass = '';
+                        $blinkClass = 'blink-border-yellow';
+                    } elseif ($dev['has_overdue']) {
+                        $borderClass = 'border-red-900/50';
+                    }
                 @endphp
-                <div class="{{ $borderColor }} border rounded p-4">
+                <div class="{{ $borderClass }} {{ $blinkClass }} border rounded p-4">
                     {{-- Header --}}
                     <div class="flex items-center justify-between mb-3">
                         <div class="flex items-center gap-2">
@@ -124,6 +144,10 @@
                         <div class="flex justify-between text-xs mb-1">
                             <span>{{ now()->format('M/Y') }} <span class="text-green-700">({{ $dev['done_month'] }}/{{ $dev['total_tasks'] }} tasks)</span></span>
                             <span class="{{ $progressColor }}">{{ $progressBar }} {{ $dev['progress'] }}%</span>
+                        </div>
+                        <div class="flex justify-between text-xs mb-1">
+                            <span class="text-green-700">{{ now()->subMonth()->format('M/Y') }} <span class="text-green-800">({{ $dev['done_prev_month'] }}/{{ $dev['total_tasks_prev'] }} tasks)</span></span>
+                            <span class="{{ $progressColorPrev }}">{{ $progressBarPrev }} {{ $dev['progress_prev'] }}%</span>
                         </div>
                         <div class="flex gap-3 text-[9px] text-green-800">
                             <span>done:<span class="text-green-500">{{ $dev['done_month'] }}</span></span>
@@ -285,8 +309,11 @@
 
         {{-- Footer --}}
         <div class="mt-4 text-center text-[10px] text-green-900">
-            LaraClaw v0.1.0 | auto-refresh: disabled | data from clickup_tasks + executions
+            LaraClaw v0.1.0 | auto-refresh: 5min | data from clickup_tasks + executions
         </div>
     </div>
+    <script>
+        setTimeout(function() { location.reload(); }, 5 * 60 * 1000);
+    </script>
 </body>
 </html>

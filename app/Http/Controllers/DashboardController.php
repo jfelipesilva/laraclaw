@@ -64,7 +64,10 @@ class DashboardController extends Controller
             ->count();
 
         // Dev panels
-        $devPanels = $devs->map(function ($dev) use ($now, $monthStart) {
+        $prevMonthStart = $now->copy()->subMonth()->startOfMonth();
+        $prevMonthEnd = $now->copy()->subMonth()->endOfMonth();
+
+        $devPanels = $devs->map(function ($dev) use ($now, $monthStart, $prevMonthStart, $prevMonthEnd) {
             $assigneeId = $dev['clickup_id'];
 
             // Tasks em execucao
@@ -96,6 +99,11 @@ class DashboardController extends Controller
                 ->where('date_done', '>=', $monthStart)
                 ->count();
 
+            // Done previous month
+            $donePrevMonth = ClickupTask::where('assignee_id', $assigneeId)
+                ->whereBetween('date_done', [$prevMonthStart, $prevMonthEnd])
+                ->count();
+
             // Total assigned (not done)
             $totalActive = ClickupTask::where('assignee_id', $assigneeId)
                 ->whereNull('date_done')
@@ -115,6 +123,10 @@ class DashboardController extends Controller
             $totalTasks = $doneMonth + $totalActive;
             $progress = $totalTasks > 0 ? round(($doneMonth / $totalTasks) * 100) : 0;
 
+            // Previous month: tasks done prev month / (done prev month + done this month + total active)
+            $totalTasksPrev = $donePrevMonth + $totalActive + $doneMonth;
+            $progressPrev = $totalTasksPrev > 0 ? round(($donePrevMonth / $totalTasksPrev) * 100) : 0;
+
             return [
                 'name' => $dev['name'],
                 'clickup_id' => $assigneeId,
@@ -123,12 +135,15 @@ class DashboardController extends Controller
                 'in_review' => $inReview,
                 'paused' => $paused,
                 'done_month' => $doneMonth,
+                'done_prev_month' => $donePrevMonth,
                 'total_active' => $totalActive,
                 'overdue' => $overdue,
                 'has_overdue' => $hasOverdue,
                 'is_working' => $isWorking,
                 'progress' => $progress,
+                'progress_prev' => $progressPrev,
                 'total_tasks' => $totalTasks,
+                'total_tasks_prev' => $totalTasksPrev,
             ];
         });
 
