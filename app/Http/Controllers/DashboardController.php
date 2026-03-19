@@ -64,47 +64,84 @@ class DashboardController extends Controller
             ->count();
 
         // Dev panels
+        $monthEnd = $now->copy()->endOfMonth();
         $prevMonthStart = $now->copy()->subMonth()->startOfMonth();
         $prevMonthEnd = $now->copy()->subMonth()->endOfMonth();
+        $nextMonthStart = $now->copy()->addMonth()->startOfMonth();
+        $nextMonthEnd = $now->copy()->addMonth()->endOfMonth();
 
-        $devPanels = $devs->map(function ($dev) use ($now, $monthStart, $prevMonthStart, $prevMonthEnd) {
+        $devPanels = $devs->map(function ($dev) use ($now, $monthStart, $monthEnd, $prevMonthStart, $prevMonthEnd, $nextMonthStart, $nextMonthEnd) {
             $assigneeId = $dev['clickup_id'];
 
-            // Tasks em execucao
+            // Tasks em execucao (global, sem filtro de período)
             $inExecution = ClickupTask::where('assignee_id', $assigneeId)
                 ->where('status', 'em execução')
                 ->whereNull('date_done')
                 ->get();
 
-            // Tasks disponiveis / na fila
+            // Tasks disponiveis / na fila (global)
             $available = ClickupTask::where('assignee_id', $assigneeId)
                 ->whereIn('status', ['disponíveis', 'na fila'])
                 ->whereNull('date_done')
                 ->get();
 
-            // Tasks em revisao / correções
+            // Tasks em revisao / correções (global)
             $inReview = ClickupTask::where('assignee_id', $assigneeId)
                 ->whereIn('status', ['em revisão', 'correções'])
                 ->whereNull('date_done')
                 ->count();
 
-            // Pausadas
+            // Pausadas (global)
             $paused = ClickupTask::where('assignee_id', $assigneeId)
                 ->where('status', 'pausado')
                 ->whereNull('date_done')
                 ->count();
 
-            // Done this month
+            // --- Barras de progresso filtradas por due_date ---
+
+            // Current month: tasks with due_date in this month
             $doneMonth = ClickupTask::where('assignee_id', $assigneeId)
-                ->where('date_done', '>=', $monthStart)
+                ->whereBetween('due_date', [$monthStart, $monthEnd])
+                ->whereNotNull('date_done')
                 ->count();
 
-            // Done previous month
+            $activeMonth = ClickupTask::where('assignee_id', $assigneeId)
+                ->whereBetween('due_date', [$monthStart, $monthEnd])
+                ->whereNull('date_done')
+                ->count();
+
+            $totalTasks = $doneMonth + $activeMonth;
+            $progress = $totalTasks > 0 ? round(($doneMonth / $totalTasks) * 100) : 0;
+
+            // Previous month: tasks with due_date in previous month
             $donePrevMonth = ClickupTask::where('assignee_id', $assigneeId)
-                ->whereBetween('date_done', [$prevMonthStart, $prevMonthEnd])
+                ->whereBetween('due_date', [$prevMonthStart, $prevMonthEnd])
+                ->whereNotNull('date_done')
                 ->count();
 
-            // Total assigned (not done)
+            $activePrevMonth = ClickupTask::where('assignee_id', $assigneeId)
+                ->whereBetween('due_date', [$prevMonthStart, $prevMonthEnd])
+                ->whereNull('date_done')
+                ->count();
+
+            $totalTasksPrev = $donePrevMonth + $activePrevMonth;
+            $progressPrev = $totalTasksPrev > 0 ? round(($donePrevMonth / $totalTasksPrev) * 100) : 0;
+
+            // Next month: tasks with due_date in next month
+            $doneNextMonth = ClickupTask::where('assignee_id', $assigneeId)
+                ->whereBetween('due_date', [$nextMonthStart, $nextMonthEnd])
+                ->whereNotNull('date_done')
+                ->count();
+
+            $activeNextMonth = ClickupTask::where('assignee_id', $assigneeId)
+                ->whereBetween('due_date', [$nextMonthStart, $nextMonthEnd])
+                ->whereNull('date_done')
+                ->count();
+
+            $totalTasksNext = $doneNextMonth + $activeNextMonth;
+            $progressNext = $totalTasksNext > 0 ? round(($doneNextMonth / $totalTasksNext) * 100) : 0;
+
+            // Total active (global, for display)
             $totalActive = ClickupTask::where('assignee_id', $assigneeId)
                 ->whereNull('date_done')
                 ->count();
@@ -120,13 +157,6 @@ class DashboardController extends Controller
             $hasOverdue = $overdue > 0;
             $isWorking = $inExecution->count() > 0;
 
-            $totalTasks = $doneMonth + $totalActive;
-            $progress = $totalTasks > 0 ? round(($doneMonth / $totalTasks) * 100) : 0;
-
-            // Previous month: tasks done prev month / (done prev month + done this month + total active)
-            $totalTasksPrev = $donePrevMonth + $totalActive + $doneMonth;
-            $progressPrev = $totalTasksPrev > 0 ? round(($donePrevMonth / $totalTasksPrev) * 100) : 0;
-
             return [
                 'name' => $dev['name'],
                 'clickup_id' => $assigneeId,
@@ -136,14 +166,17 @@ class DashboardController extends Controller
                 'paused' => $paused,
                 'done_month' => $doneMonth,
                 'done_prev_month' => $donePrevMonth,
+                'done_next_month' => $doneNextMonth,
                 'total_active' => $totalActive,
                 'overdue' => $overdue,
                 'has_overdue' => $hasOverdue,
                 'is_working' => $isWorking,
                 'progress' => $progress,
                 'progress_prev' => $progressPrev,
+                'progress_next' => $progressNext,
                 'total_tasks' => $totalTasks,
                 'total_tasks_prev' => $totalTasksPrev,
+                'total_tasks_next' => $totalTasksNext,
             ];
         });
 

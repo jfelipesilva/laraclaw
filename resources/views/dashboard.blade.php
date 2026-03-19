@@ -105,6 +105,8 @@
                     $progressColor = $dev['progress'] >= 60 ? 'text-green-600' : ($dev['progress'] >= 40 ? 'text-yellow-500' : 'text-red-500');
                     $progressBarPrev = str_repeat('█', (int)($dev['progress_prev'] / 5)) . str_repeat('░', 20 - (int)($dev['progress_prev'] / 5));
                     $progressColorPrev = $dev['progress_prev'] >= 60 ? 'text-green-600' : ($dev['progress_prev'] >= 40 ? 'text-yellow-500' : 'text-red-500');
+                    $progressBarNext = str_repeat('█', (int)($dev['progress_next'] / 5)) . str_repeat('░', 20 - (int)($dev['progress_next'] / 5));
+                    $progressColorNext = $dev['progress_next'] >= 60 ? 'text-green-600' : ($dev['progress_next'] >= 40 ? 'text-yellow-500' : 'text-red-500');
 
                     $noExecution = $dev['in_execution']->count() === 0;
                     $noAvailable = $dev['available']->count() === 0;
@@ -142,12 +144,16 @@
                     {{-- Progresso mensal --}}
                     <div class="mb-3">
                         <div class="flex justify-between text-xs mb-1">
+                            <span class="text-green-700">{{ now()->subMonth()->format('M/Y') }} <span class="text-green-800">({{ $dev['done_prev_month'] }}/{{ $dev['total_tasks_prev'] }} tasks)</span></span>
+                            <span class="{{ $progressColorPrev }}">{{ $progressBarPrev }} {{ $dev['progress_prev'] }}%</span>
+                        </div>
+                        <div class="flex justify-between text-xs mb-1">
                             <span>{{ now()->format('M/Y') }} <span class="text-green-700">({{ $dev['done_month'] }}/{{ $dev['total_tasks'] }} tasks)</span></span>
                             <span class="{{ $progressColor }}">{{ $progressBar }} {{ $dev['progress'] }}%</span>
                         </div>
                         <div class="flex justify-between text-xs mb-1">
-                            <span class="text-green-700">{{ now()->subMonth()->format('M/Y') }} <span class="text-green-800">({{ $dev['done_prev_month'] }}/{{ $dev['total_tasks_prev'] }} tasks)</span></span>
-                            <span class="{{ $progressColorPrev }}">{{ $progressBarPrev }} {{ $dev['progress_prev'] }}%</span>
+                            <span class="text-green-700">{{ now()->addMonth()->format('M/Y') }} <span class="text-green-800">({{ $dev['done_next_month'] }}/{{ $dev['total_tasks_next'] }} tasks)</span></span>
+                            <span class="{{ $progressColorNext }}">{{ $progressBarNext }} {{ $dev['progress_next'] }}%</span>
                         </div>
                         <div class="flex gap-3 text-[9px] text-green-800">
                             <span>done:<span class="text-green-500">{{ $dev['done_month'] }}</span></span>
