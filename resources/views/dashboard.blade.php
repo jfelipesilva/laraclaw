@@ -104,8 +104,11 @@
                                 </span>
                                 <span class="text-[10px] {{ $isNow ? 'text-cyan-500' : 'text-green-700' }}">{{ $timeLabel }}</span>
                             </div>
-                            @if($event->location)
-                                <div class="text-[10px] text-green-800 mt-1 truncate">&#9872; {{ $event->location }}</div>
+                            @if($event->location || $event->calendar_name)
+                                <div class="text-[10px] text-green-800 mt-1 truncate">
+                                    @if($event->calendar_name)<span style="{{ $event->color ? 'color:'.$event->color : '' }}">&#9632;</span> {{ $event->calendar_name }}@endif
+                                    @if($event->location) &#9872; {{ $event->location }}@endif
+                                </div>
                             @endif
                         </div>
                     @empty
@@ -134,8 +137,11 @@
                                 </span>
                                 <span class="text-[10px] text-green-700">{{ $dayLabel }} {{ $timeLabel }}</span>
                             </div>
-                            @if($event->location)
-                                <div class="text-[10px] text-green-800 mt-1 truncate">&#9872; {{ $event->location }}</div>
+                            @if($event->location || $event->calendar_name)
+                                <div class="text-[10px] text-green-800 mt-1 truncate">
+                                    @if($event->calendar_name)<span style="{{ $event->color ? 'color:'.$event->color : '' }}">&#9632;</span> {{ $event->calendar_name }}@endif
+                                    @if($event->location) &#9872; {{ $event->location }}@endif
+                                </div>
                             @endif
                         </div>
                     @empty

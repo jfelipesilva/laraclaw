@@ -40,6 +40,8 @@ class GoogleCalendarSyncTask extends BaseTask
                     'end_at' => $event['end_at'],
                     'all_day' => $event['all_day'],
                     'status' => $event['status'],
+                    'calendar_name' => $event['calendar_name'] ?? null,
+                    'color' => $event['color'] ?? null,
                     'html_link' => $event['html_link'],
                 ]
             );

@@ -95,40 +95,56 @@ class GoogleCalendarService
 
         try {
             $service = new Calendar($this->client);
-
             $now = now();
-            $params = [
-                'calendarId' => $this->calendarId,
-                'timeMin' => $now->toRfc3339String(),
-                'timeMax' => $now->copy()->addDays($days)->endOfDay()->toRfc3339String(),
-                'singleEvents' => true,
-                'orderBy' => 'startTime',
-                'maxResults' => 100,
-            ];
+            $timeMin = $now->toRfc3339String();
+            $timeMax = $now->copy()->addDays($days)->endOfDay()->toRfc3339String();
 
-            $results = $service->events->listEvents($this->calendarId, $params);
+            // Busca todas as agendas visíveis
+            $calendarList = $service->calendarList->listCalendarList();
+            $allEvents = [];
 
-            return array_map(function ($event) {
-                $start = $event->getStart();
-                $end = $event->getEnd();
-                $allDay = !empty($start->getDate());
+            foreach ($calendarList->getItems() as $calendar) {
+                $calendarId = $calendar->getId();
+                $calendarName = $calendar->getSummary();
+                $calendarColor = $calendar->getBackgroundColor();
 
-                return [
-                    'id' => $event->getId(),
-                    'title' => $event->getSummary() ?? '(sem titulo)',
-                    'description' => $event->getDescription(),
-                    'location' => $event->getLocation(),
-                    'start_at' => $allDay
-                        ? $start->getDate() . ' 00:00:00'
-                        : date('Y-m-d H:i:s', strtotime($start->getDateTime())),
-                    'end_at' => $allDay
-                        ? date('Y-m-d H:i:s', strtotime($end->getDate() . ' -1 day'))
-                        : date('Y-m-d H:i:s', strtotime($end->getDateTime())),
-                    'all_day' => $allDay,
-                    'status' => $event->getStatus() ?? 'confirmed',
-                    'html_link' => $event->getHtmlLink(),
-                ];
-            }, $results->getItems());
+                $results = $service->events->listEvents($calendarId, [
+                    'timeMin' => $timeMin,
+                    'timeMax' => $timeMax,
+                    'singleEvents' => true,
+                    'orderBy' => 'startTime',
+                    'maxResults' => 50,
+                ]);
+
+                foreach ($results->getItems() as $event) {
+                    $start = $event->getStart();
+                    $end = $event->getEnd();
+                    $allDay = !empty($start->getDate());
+
+                    $allEvents[] = [
+                        'id' => $event->getId(),
+                        'title' => $event->getSummary() ?? '(sem titulo)',
+                        'description' => $event->getDescription(),
+                        'location' => $event->getLocation(),
+                        'start_at' => $allDay
+                            ? $start->getDate() . ' 00:00:00'
+                            : date('Y-m-d H:i:s', strtotime($start->getDateTime())),
+                        'end_at' => $allDay
+                            ? date('Y-m-d H:i:s', strtotime($end->getDate() . ' -1 day'))
+                            : date('Y-m-d H:i:s', strtotime($end->getDateTime())),
+                        'all_day' => $allDay,
+                        'status' => $event->getStatus() ?? 'confirmed',
+                        'calendar_name' => $calendarName,
+                        'color' => $calendarColor,
+                        'html_link' => $event->getHtmlLink(),
+                    ];
+                }
+            }
+
+            // Ordena por start_at
+            usort($allEvents, fn ($a, $b) => strcmp($a['start_at'], $b['start_at']));
+
+            return $allEvents;
         } catch (\Throwable $e) {
             Log::channel('laraclaw')->error("Google Calendar API error: {$e->getMessage()}");
             return null;
