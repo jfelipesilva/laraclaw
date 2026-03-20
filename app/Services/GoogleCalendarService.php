@@ -99,16 +99,26 @@ class GoogleCalendarService
             $timeMin = $now->toRfc3339String();
             $timeMax = $now->copy()->addDays($days)->endOfDay()->toRfc3339String();
 
-            // Busca calendários configurados (IDs separados por vírgula, ou 'all' para todos)
-            $configuredIds = config('laraclaw.google_calendar.calendar_id', 'primary');
+            // Busca calendários: prioridade metadata (seleção UI) > env > all
+            $config = \App\Models\AgentConfig::where('slug', 'google-calendar-sync')->first();
+            $selectedFromUi = $config?->metadata['selected_calendars'] ?? [];
+            $allCalendars = collect($service->calendarList->listCalendarList()->getItems())
+                ->map(fn ($c) => ['id' => $c->getId(), 'name' => $c->getSummary(), 'color' => $c->getBackgroundColor()]);
             $allEvents = [];
 
-            if ($configuredIds === 'all') {
-                $calendars = collect($service->calendarList->listCalendarList()->getItems())
-                    ->map(fn ($c) => ['id' => $c->getId(), 'name' => $c->getSummary(), 'color' => $c->getBackgroundColor()]);
+            if (!empty($selectedFromUi)) {
+                $calendars = $allCalendars->filter(fn ($c) => in_array($c['id'], $selectedFromUi));
             } else {
-                $ids = array_map('trim', explode(',', $configuredIds));
-                $calendars = collect($ids)->map(fn ($id) => ['id' => $id, 'name' => null, 'color' => null]);
+                $configuredIds = config('laraclaw.google_calendar.calendar_id', 'primary');
+                if ($configuredIds === 'all') {
+                    $calendars = $allCalendars;
+                } else {
+                    $ids = array_map('trim', explode(',', $configuredIds));
+                    $calendars = $allCalendars->filter(fn ($c) => in_array($c['id'], $ids));
+                    if ($calendars->isEmpty()) {
+                        $calendars = collect($ids)->map(fn ($id) => ['id' => $id, 'name' => null, 'color' => null]);
+                    }
+                }
             }
 
             foreach ($calendars as $calendar) {

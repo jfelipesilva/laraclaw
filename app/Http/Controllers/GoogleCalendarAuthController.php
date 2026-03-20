@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\AgentConfig;
 use App\Services\GoogleCalendarService;
+use Google\Service\Calendar;
 
 class GoogleCalendarAuthController extends Controller
 {
@@ -54,5 +56,47 @@ class GoogleCalendarAuthController extends Controller
         } catch (\Throwable $e) {
             return response("Erro: {$e->getMessage()}", 500);
         }
+    }
+
+    public function listCalendars()
+    {
+        $service = app(GoogleCalendarService::class);
+
+        if (!$service->isAuthenticated()) {
+            return response()->json(['error' => 'Not authenticated'], 401);
+        }
+
+        $cal = new Calendar($service->getClient());
+        $items = $cal->calendarList->listCalendarList()->getItems();
+
+        $config = AgentConfig::where('slug', 'google-calendar-sync')->first();
+        $selected = $config?->metadata['selected_calendars'] ?? [];
+
+        $calendars = array_map(fn ($c) => [
+            'id' => $c->getId(),
+            'name' => $c->getSummary(),
+            'color' => $c->getBackgroundColor(),
+            'selected' => empty($selected) || in_array($c->getId(), $selected),
+        ], $items);
+
+        return response()->json($calendars);
+    }
+
+    public function saveCalendars()
+    {
+        $ids = request('calendar_ids', []);
+
+        $config = AgentConfig::updateOrCreate(
+            ['slug' => 'google-calendar-sync'],
+            ['metadata' => ['selected_calendars' => $ids]]
+        );
+
+        // Trigger sync imediato
+        $runnable = \App\Services\RunnableRegistry::find('google-calendar-sync');
+        if ($runnable) {
+            $runnable->run();
+        }
+
+        return response()->json(['ok' => true, 'selected' => count($ids)]);
     }
 }

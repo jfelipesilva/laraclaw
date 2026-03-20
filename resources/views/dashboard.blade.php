@@ -75,9 +75,12 @@
         <div class="border border-green-900 rounded p-4 mb-4">
             <div class="flex items-center justify-between mb-3">
                 <div class="text-xs text-green-700">$ laraclaw agenda --view=today+upcoming</div>
-                @if($calendarLastSync)
-                    <span class="text-[10px] text-green-800">synced: {{ $calendarLastSync->format('H:i') }}</span>
-                @endif
+                <div class="flex items-center gap-3">
+                    @if($calendarLastSync)
+                        <span class="text-[10px] text-green-800">synced: {{ $calendarLastSync->format('H:i') }}</span>
+                    @endif
+                    <button onclick="openCalendarModal()" class="text-[10px] text-green-600 border border-green-800 rounded px-2 py-0.5 hover:bg-green-950 hover:text-green-400 cursor-pointer">[calendarios]</button>
+                </div>
             </div>
 
             <div class="grid grid-cols-2 gap-4">
@@ -444,8 +447,101 @@
             LaraClaw v0.1.0 | auto-refresh: 5min | data from clickup_tasks + executions
         </div>
     </div>
+    {{-- Modal Calendarios --}}
+    <div id="calendarModal" class="fixed inset-0 bg-black/80 z-50 hidden items-center justify-center">
+        <div class="border border-green-700 rounded bg-black p-6 w-full max-w-md">
+            <div class="flex items-center justify-between mb-4">
+                <span class="text-green-400 font-bold text-sm">[SELECIONAR CALENDARIOS]</span>
+                <button onclick="closeCalendarModal()" class="text-green-700 hover:text-green-400 cursor-pointer">&#10005;</button>
+            </div>
+            <div id="calendarList" class="space-y-2 mb-4 max-h-60 overflow-y-auto">
+                <div class="text-green-800 text-xs">carregando...</div>
+            </div>
+            <div class="flex justify-between items-center">
+                <span id="calendarStatus" class="text-[10px] text-green-800"></span>
+                <div class="flex gap-2">
+                    <button onclick="closeCalendarModal()" class="text-xs text-green-700 border border-green-900 rounded px-3 py-1 hover:bg-green-950 cursor-pointer">cancelar</button>
+                    <button onclick="saveCalendars()" class="text-xs text-green-400 border border-green-700 rounded px-3 py-1 hover:bg-green-950 cursor-pointer">salvar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         setTimeout(function() { location.reload(); }, 5 * 60 * 1000);
+
+        function openCalendarModal() {
+            const modal = document.getElementById('calendarModal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            loadCalendars();
+        }
+
+        function closeCalendarModal() {
+            const modal = document.getElementById('calendarModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function loadCalendars() {
+            const list = document.getElementById('calendarList');
+            list.innerHTML = '<div class="text-green-800 text-xs">carregando...</div>';
+
+            fetch('/api/google/calendars')
+                .then(r => r.json())
+                .then(calendars => {
+                    list.innerHTML = calendars.map(c => `
+                        <label class="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-green-950/30">
+                            <input type="checkbox" value="${c.id}" ${c.selected ? 'checked' : ''}
+                                class="accent-green-500">
+                            <span style="color:${c.color || '#22c55e'}">&#9632;</span>
+                            <span class="text-xs text-green-300">${c.name}</span>
+                        </label>
+                    `).join('');
+                })
+                .catch(() => {
+                    list.innerHTML = '<div class="text-red-500 text-xs">erro ao carregar calendarios</div>';
+                });
+        }
+
+        function saveCalendars() {
+            const checkboxes = document.querySelectorAll('#calendarList input[type="checkbox"]:checked');
+            const ids = Array.from(checkboxes).map(cb => cb.value);
+            const status = document.getElementById('calendarStatus');
+
+            if (ids.length === 0) {
+                status.textContent = 'selecione ao menos 1 calendario';
+                status.className = 'text-[10px] text-red-500';
+                return;
+            }
+
+            status.textContent = 'salvando e sincronizando...';
+            status.className = 'text-[10px] text-yellow-500';
+
+            fetch('/api/google/calendars', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify({ calendar_ids: ids })
+            })
+            .then(r => r.json())
+            .then(data => {
+                status.textContent = `salvo! ${data.selected} calendario(s) selecionado(s)`;
+                status.className = 'text-[10px] text-green-400';
+                setTimeout(() => location.reload(), 1500);
+            })
+            .catch(() => {
+                status.textContent = 'erro ao salvar';
+                status.className = 'text-[10px] text-red-500';
+            });
+        }
+
+        // Fechar modal ao clicar fora
+        document.getElementById('calendarModal').addEventListener('click', function(e) {
+            if (e.target === this) closeCalendarModal();
+        });
     </script>
 </body>
 </html>
