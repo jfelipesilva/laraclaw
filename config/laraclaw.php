@@ -9,6 +9,14 @@ return [
     // Tokens de APIs externas
     'veico_plates_token' => env('LARACLAW_VEICO_PLATES_TOKEN'),
 
+    // Google Calendar
+    'google_calendar' => [
+        'credentials_path' => env('GOOGLE_CALENDAR_CREDENTIALS', storage_path('app/google/credentials.json')),
+        'token_path' => env('GOOGLE_CALENDAR_TOKEN', storage_path('app/google/token.json')),
+        'calendar_id' => env('GOOGLE_CALENDAR_ID', 'primary'),
+        'sync_days_ahead' => env('GOOGLE_CALENDAR_DAYS_AHEAD', 7),
+    ],
+
     // ClickUp
     'clickup' => [
         'token' => env('LARACLAW_CLICKUP_TOKEN'),

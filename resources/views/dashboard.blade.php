@@ -71,6 +71,80 @@
             </div>
         </div>
 
+        {{-- Agenda (Google Calendar) --}}
+        <div class="border border-green-900 rounded p-4 mb-4">
+            <div class="flex items-center justify-between mb-3">
+                <div class="text-xs text-green-700">$ laraclaw agenda --view=today+upcoming</div>
+                @if($calendarLastSync)
+                    <span class="text-[10px] text-green-800">synced: {{ $calendarLastSync->format('H:i') }}</span>
+                @endif
+            </div>
+
+            <div class="grid grid-cols-2 gap-4">
+                {{-- Hoje --}}
+                <div>
+                    <div class="text-xs text-cyan-500 mb-2 font-bold">&#9654; HOJE ({{ now()->format('d/m') }}) — {{ $calendarEventsToday->count() }} evento(s)</div>
+                    @forelse($calendarEventsToday as $event)
+                        @php
+                            $isNow = $event->isNow();
+                            $borderClass = $isNow ? 'border-cyan-700 bg-cyan-950/20' : 'border-green-950';
+                            $timeLabel = $event->all_day
+                                ? 'DIA TODO'
+                                : $event->start_at->format('H:i') . ($event->end_at ? ' - ' . $event->end_at->format('H:i') : '');
+                        @endphp
+                        <div class="border {{ $borderClass }} rounded p-2 mb-1">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs {{ $isNow ? 'text-cyan-300 font-bold' : 'text-green-300' }} truncate max-w-[70%]">
+                                    @if($isNow)<span class="text-cyan-400 blink">&#9679;</span> @endif
+                                    @if($event->html_link)
+                                        <a href="{{ $event->html_link }}" target="_blank" class="hover:underline">{{ $event->title }}</a>
+                                    @else
+                                        {{ $event->title }}
+                                    @endif
+                                </span>
+                                <span class="text-[10px] {{ $isNow ? 'text-cyan-500' : 'text-green-700' }}">{{ $timeLabel }}</span>
+                            </div>
+                            @if($event->location)
+                                <div class="text-[10px] text-green-800 mt-1 truncate">&#9872; {{ $event->location }}</div>
+                            @endif
+                        </div>
+                    @empty
+                        <div class="text-[10px] text-green-800 italic">nenhum evento hoje</div>
+                    @endforelse
+                </div>
+
+                {{-- Proximos dias --}}
+                <div>
+                    <div class="text-xs text-green-500 mb-2 font-bold">&#9670; PROXIMOS DIAS</div>
+                    @forelse($calendarEventsUpcoming as $event)
+                        @php
+                            $dayLabel = $event->start_at->isToday() ? 'HOJE' : ($event->start_at->isTomorrow() ? 'AMANHA' : $event->start_at->format('D d/m'));
+                            $timeLabel = $event->all_day
+                                ? 'DIA TODO'
+                                : $event->start_at->format('H:i');
+                        @endphp
+                        <div class="border border-green-950 rounded p-2 mb-1">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs text-green-300 truncate max-w-[60%]">
+                                    @if($event->html_link)
+                                        <a href="{{ $event->html_link }}" target="_blank" class="hover:underline">{{ $event->title }}</a>
+                                    @else
+                                        {{ $event->title }}
+                                    @endif
+                                </span>
+                                <span class="text-[10px] text-green-700">{{ $dayLabel }} {{ $timeLabel }}</span>
+                            </div>
+                            @if($event->location)
+                                <div class="text-[10px] text-green-800 mt-1 truncate">&#9872; {{ $event->location }}</div>
+                            @endif
+                        </div>
+                    @empty
+                        <div class="text-[10px] text-green-800 italic">nenhum evento nos proximos dias</div>
+                    @endforelse
+                </div>
+            </div>
+        </div>
+
         {{-- Pipeline --}}
         <div class="border border-green-900 rounded p-4 mb-4">
             <div class="text-xs text-green-700 mb-3">$ laraclaw pipeline --space="producao"</div>

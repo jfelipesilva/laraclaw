@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\AgentConfig;
+use App\Models\CalendarEvent;
 use App\Models\ClickupTask;
 use App\Models\Execution;
 use App\Services\RunnableRegistry;
@@ -211,6 +212,21 @@ class DashboardController extends Controller
         // Last sync time
         $lastSync = AgentConfig::where('slug', 'clickup-sync')->first()?->last_run_at;
 
+        // Calendar events (today + upcoming)
+        $calendarEventsToday = CalendarEvent::where('status', '!=', 'cancelled')
+            ->whereDate('start_at', $now->toDateString())
+            ->orderBy('all_day', 'desc')
+            ->orderBy('start_at')
+            ->get();
+
+        $calendarEventsUpcoming = CalendarEvent::where('status', '!=', 'cancelled')
+            ->whereDate('start_at', '>', $now->toDateString())
+            ->orderBy('start_at')
+            ->limit(10)
+            ->get();
+
+        $calendarLastSync = AgentConfig::where('slug', 'google-calendar-sync')->first()?->last_run_at;
+
         return view('dashboard', compact(
             'plateCredits',
             'plateAlert',
@@ -225,6 +241,9 @@ class DashboardController extends Controller
             'runnables',
             'executions',
             'lastSync',
+            'calendarEventsToday',
+            'calendarEventsUpcoming',
+            'calendarLastSync',
         ));
     }
 }
