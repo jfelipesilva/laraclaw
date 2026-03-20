@@ -99,16 +99,20 @@ class GoogleCalendarService
             $timeMin = $now->toRfc3339String();
             $timeMax = $now->copy()->addDays($days)->endOfDay()->toRfc3339String();
 
-            // Busca todas as agendas visíveis
-            $calendarList = $service->calendarList->listCalendarList();
+            // Busca calendários configurados (IDs separados por vírgula, ou 'all' para todos)
+            $configuredIds = config('laraclaw.google_calendar.calendar_id', 'primary');
             $allEvents = [];
 
-            foreach ($calendarList->getItems() as $calendar) {
-                $calendarId = $calendar->getId();
-                $calendarName = $calendar->getSummary();
-                $calendarColor = $calendar->getBackgroundColor();
+            if ($configuredIds === 'all') {
+                $calendars = collect($service->calendarList->listCalendarList()->getItems())
+                    ->map(fn ($c) => ['id' => $c->getId(), 'name' => $c->getSummary(), 'color' => $c->getBackgroundColor()]);
+            } else {
+                $ids = array_map('trim', explode(',', $configuredIds));
+                $calendars = collect($ids)->map(fn ($id) => ['id' => $id, 'name' => null, 'color' => null]);
+            }
 
-                $results = $service->events->listEvents($calendarId, [
+            foreach ($calendars as $calendar) {
+                $results = $service->events->listEvents($calendar['id'], [
                     'timeMin' => $timeMin,
                     'timeMax' => $timeMax,
                     'singleEvents' => true,
@@ -134,8 +138,8 @@ class GoogleCalendarService
                             : date('Y-m-d H:i:s', strtotime($end->getDateTime())),
                         'all_day' => $allDay,
                         'status' => $event->getStatus() ?? 'confirmed',
-                        'calendar_name' => $calendarName,
-                        'color' => $calendarColor,
+                        'calendar_name' => $calendar['name'],
+                        'color' => $calendar['color'],
                         'html_link' => $event->getHtmlLink(),
                     ];
                 }
