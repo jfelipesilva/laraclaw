@@ -1,8 +1,12 @@
 <?php
 
-use Illuminate\Foundation\Inspiring;
-use Illuminate\Support\Facades\Artisan;
+use App\Services\RunnableRegistry;
+use Illuminate\Support\Facades\Schedule;
 
-Artisan::command('inspire', function () {
-    $this->comment(Inspiring::quote());
-})->purpose('Display an inspiring quote');
+// Registra todas as tasks/agents com cron no scheduler do Laravel
+foreach (RunnableRegistry::scheduled() as $runnable) {
+    Schedule::call(fn () => $runnable->run())
+        ->cron($runnable->getCronExpression())
+        ->name($runnable->getSlug())
+        ->withoutOverlapping();
+}
