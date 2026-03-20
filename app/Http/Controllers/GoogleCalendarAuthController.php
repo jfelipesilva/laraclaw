@@ -6,11 +6,20 @@ use App\Services\GoogleCalendarService;
 
 class GoogleCalendarAuthController extends Controller
 {
+    protected function getRedirectUri(): string
+    {
+        $credentialsPath = config('laraclaw.google_calendar.credentials_path');
+        $credentials = json_decode(file_get_contents($credentialsPath), true);
+        $type = isset($credentials['web']) ? 'web' : 'installed';
+
+        return $credentials[$type]['redirect_uris'][0] ?? url('/');
+    }
+
     public function redirect()
     {
         $service = app(GoogleCalendarService::class);
         $client = $service->getClient();
-        $client->setRedirectUri(url('/'));
+        $client->setRedirectUri($this->getRedirectUri());
 
         $authUrl = $client->createAuthUrl();
 
@@ -27,7 +36,7 @@ class GoogleCalendarAuthController extends Controller
 
         $service = app(GoogleCalendarService::class);
         $client = $service->getClient();
-        $client->setRedirectUri(url('/'));
+        $client->setRedirectUri($this->getRedirectUri());
 
         try {
             $token = $client->fetchAccessTokenWithAuthCode($code);
