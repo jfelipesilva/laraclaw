@@ -14,7 +14,7 @@ return [
         'credentials_path' => env('GOOGLE_CALENDAR_CREDENTIALS', storage_path('app/google/credentials.json')),
         'token_path' => env('GOOGLE_CALENDAR_TOKEN', storage_path('app/google/token.json')),
         'calendar_id' => env('GOOGLE_CALENDAR_ID', 'primary'),
-        'sync_days_ahead' => env('GOOGLE_CALENDAR_DAYS_AHEAD', 7),
+        'sync_days_ahead' => (int) env('GOOGLE_CALENDAR_DAYS_AHEAD', 7),
     ],
 
     // ClickUp
