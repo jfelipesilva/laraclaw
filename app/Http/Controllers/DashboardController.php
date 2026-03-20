@@ -180,6 +180,13 @@ class DashboardController extends Controller
             ];
         });
 
+        // Overdue tasks to archive/complete (due before current month, not archived)
+        $overduePendingArchive = ClickupTask::whereNotNull('due_date')
+            ->where('due_date', '<', $monthStart)
+            ->where('status', '!=', 'arquivado')
+            ->orderBy('due_date', 'asc')
+            ->get();
+
         // Runnables table
         $runnables = RunnableRegistry::all()->map(function ($runnable) {
             $config = $runnable->getConfig();
@@ -213,6 +220,7 @@ class DashboardController extends Controller
             'wipCount',
             'doneThisWeek',
             'overdueCount',
+            'overduePendingArchive',
             'devPanels',
             'runnables',
             'executions',

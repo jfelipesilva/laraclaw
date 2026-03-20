@@ -95,6 +95,52 @@
             </div>
         </div>
 
+        {{-- Overdue Pending Archive --}}
+        @if($overduePendingArchive->count() > 0)
+        <div class="border border-red-900 rounded p-4 mb-4">
+            <div class="flex items-center justify-between mb-3">
+                <div class="text-xs text-red-500">$ laraclaw tasks --overdue --pending-archive <span class="text-red-700">(vencidas antes de {{ now()->format('M/Y') }} | não arquivadas)</span></div>
+                <span class="text-red-400 text-xs font-bold blink">{{ $overduePendingArchive->count() }} PENDENTES</span>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-xs">
+                    <thead>
+                        <tr class="text-red-700 border-b border-red-900">
+                            <th class="text-left pb-1">TASK</th>
+                            <th class="text-left pb-1">RESPONSAVEL</th>
+                            <th class="text-left pb-1">STATUS</th>
+                            <th class="text-left pb-1">PROJETO</th>
+                            <th class="text-left pb-1">VENCIMENTO</th>
+                            <th class="text-left pb-1">ATRASO</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($overduePendingArchive as $task)
+                            @php
+                                $daysLate = (int) $task->due_date->diffInDays(now());
+                                $urgencyClass = $daysLate > 60 ? 'text-red-400' : ($daysLate > 30 ? 'text-orange-400' : 'text-yellow-400');
+                            @endphp
+                            <tr class="border-b border-red-950/50 hover:bg-red-950/20">
+                                <td class="py-1.5 pr-2 text-red-300 max-w-[300px] truncate">
+                                    @if($task->url)
+                                        <a href="{{ $task->url }}" target="_blank" class="hover:underline">{{ $task->name }}</a>
+                                    @else
+                                        {{ $task->name }}
+                                    @endif
+                                </td>
+                                <td class="py-1.5 pr-2 text-red-600">{{ $task->assignee_name ? explode(' ', $task->assignee_name)[0] : '-' }}</td>
+                                <td class="py-1.5 pr-2 text-red-600">{{ $task->status }}</td>
+                                <td class="py-1.5 pr-2 text-red-700">{{ $task->project ?? '-' }}</td>
+                                <td class="py-1.5 pr-2 text-red-600">{{ $task->due_date->format('d/m/Y') }}</td>
+                                <td class="py-1.5 {{ $urgencyClass }} font-bold">{{ $daysLate }}d</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        @endif
+
         {{-- Dev Panels --}}
         <div class="text-xs text-green-700 mb-2">$ laraclaw team --view=detailed --month=current</div>
         <div class="grid grid-cols-2 gap-4 mb-4">
