@@ -21,26 +21,26 @@
 <body class="bg-black text-green-400 min-h-screen p-4">
     <div class="scanline"></div>
 
-    <div class="max-w-7xl mx-auto">
+    <div class="mx-auto" style="max-width: 1900px;">
         {{-- Header --}}
-        <div class="border border-green-900 rounded p-3 mb-4 flex items-center justify-between">
+        <div class="border border-green-900 rounded p-3 mb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
             <div class="flex items-center gap-3">
                 <span class="text-green-500 glow-green font-bold">[LARACLAW]</span>
                 <span class="text-green-700">v0.1.0</span>
-                <span class="text-green-900">|</span>
-                <span class="text-green-600">SYSTEM DASHBOARD</span>
+                <span class="text-green-900 hidden sm:inline">|</span>
+                <span class="text-green-600 hidden sm:inline">SYSTEM DASHBOARD</span>
             </div>
             <div class="flex items-center gap-4 text-xs">
                 @if($lastSync)
                     <span class="text-green-700">last_sync: {{ $lastSync->format('H:i:s') }}</span>
                 @endif
-                <span class="text-green-700">{{ now()->format('Y-m-d H:i:s') }}</span>
+                <span class="text-green-700 hidden sm:inline">{{ now()->format('Y-m-d H:i:s') }}</span>
                 <span class="blink text-green-400">_</span>
             </div>
         </div>
 
         {{-- Status Bar (KPIs) --}}
-        <div class="grid grid-cols-4 gap-2 mb-4">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4">
             <div class="border border-green-900 rounded p-3">
                 <div class="text-[10px] text-green-700 uppercase">api.placas.saldo</div>
                 <div class="text-2xl font-bold {{ $plateAlert ? 'text-red-500' : 'glow-green' }}">
@@ -83,7 +83,7 @@
                 </div>
             </div>
 
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {{-- Hoje --}}
                 <div>
                     <div class="text-xs text-cyan-500 mb-2 font-bold">&#9654; HOJE ({{ now()->format('d/m') }}) — {{ $calendarEventsToday->count() }} evento(s)</div>
@@ -157,17 +157,14 @@
         {{-- Pipeline --}}
         <div class="border border-green-900 rounded p-4 mb-4">
             <div class="text-xs text-green-700 mb-3">$ laraclaw pipeline --space="producao"</div>
-            <div class="flex gap-1 text-center text-xs">
+            <div class="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-7 gap-2 text-center text-xs">
                 @foreach($pipelineOrder as $status => $meta)
                     @php
                         $count = $pipeline[$status] ?? 0;
                         $pct = $pipelineTotal > 0 ? round(($count / $pipelineTotal) * 100) : 0;
                         $isExecution = $status === 'em execução';
                     @endphp
-                    @if(!$loop->first)
-                        <div class="flex items-center text-green-800">></div>
-                    @endif
-                    <div class="flex-1 border border-{{ $meta['color'] }}-900{{ $isExecution ? '/50' : '' }} rounded p-2 {{ $isExecution ? 'bg-yellow-950/20' : '' }}">
+                    <div class="border border-{{ $meta['color'] }}-900{{ $isExecution ? '/50' : '' }} rounded p-2 {{ $isExecution ? 'bg-yellow-950/20' : '' }}">
                         <div class="text-{{ $meta['color'] }}-{{ $isExecution ? '600' : '700' }}">{{ $meta['label'] }}</div>
                         <div class="text-lg font-bold text-{{ $meta['text'] }}">{{ $count }}</div>
                         <div class="mt-1 h-1 bg-{{ $meta['color'] }}-900 rounded">
@@ -226,7 +223,7 @@
 
         {{-- Dev Panels --}}
         <div class="text-xs text-green-700 mb-2">$ laraclaw team --view=detailed --month=current</div>
-        <div class="grid grid-cols-2 gap-4 mb-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             @foreach($devPanels as $dev)
                 @php
                     $firstName = explode(' ', $dev['name'])[0];
@@ -351,11 +348,12 @@
             @endforeach
         </div>
 
-        <div class="grid grid-cols-2 gap-4 mb-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             {{-- Runnables --}}
             <div class="border border-green-900 rounded p-4">
                 <div class="text-xs text-green-700 mb-3">$ laraclaw:schedule:list</div>
-                <table class="w-full text-xs">
+                <div class="overflow-x-auto">
+                <table class="w-full text-xs min-w-[500px]">
                     <thead>
                         <tr class="text-green-700 border-b border-green-900">
                             <th class="text-left pb-1">SLUG</th>
@@ -387,6 +385,7 @@
                         @endforeach
                     </tbody>
                 </table>
+                </div>
             </div>
 
             {{-- Team Summary --}}
@@ -422,9 +421,9 @@
         {{-- Execution Log --}}
         <div class="border border-green-900 rounded p-4">
             <div class="text-xs text-green-700 mb-3">$ tail -f /var/log/laraclaw/executions.log</div>
-            <div class="text-xs space-y-1 text-green-600">
+            <div class="text-xs space-y-1 text-green-600 overflow-x-auto">
                 @forelse($executions as $exec)
-                    <div>
+                    <div class="whitespace-nowrap">
                         [{{ $exec->started_at?->format('Y-m-d H:i:s') ?? '-' }}]
                         <span class="{{ $exec->status === 'success' ? 'text-green-400' : ($exec->status === 'error' ? 'text-red-400' : 'text-yellow-400') }}">{{ strtoupper($exec->status) }}</span>
                         {{ $exec->agent_slug }}
