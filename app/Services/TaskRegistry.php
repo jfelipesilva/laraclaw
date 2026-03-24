@@ -62,6 +62,16 @@ class TaskRegistry
         return $tasks;
     }
 
+    public static function onDemandSyncTasks(): Collection
+    {
+        return static::all()->filter(
+            fn (BaseTask $task) => in_array(
+                \App\Tasks\Concerns\SyncOnDemand::class,
+                class_uses_recursive($task)
+            )
+        );
+    }
+
     public static function flush(): void
     {
         static::$tasks = null;

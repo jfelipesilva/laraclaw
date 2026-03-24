@@ -5,6 +5,7 @@ return [
     'default_timeout' => env('LARACLAW_DEFAULT_TIMEOUT', 120),
     'default_max_turns' => env('LARACLAW_DEFAULT_MAX_TURNS', 10),
     'log_executions' => env('LARACLAW_LOG_EXECUTIONS', true),
+    'sync_cooldown_seconds' => env('LARACLAW_SYNC_COOLDOWN', 180),
 
     // Tokens de APIs externas
     'veico_plates_token' => env('LARACLAW_VEICO_PLATES_TOKEN'),

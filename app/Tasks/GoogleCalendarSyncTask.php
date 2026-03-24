@@ -9,9 +9,10 @@ use Illuminate\Support\Facades\Log;
 
 class GoogleCalendarSyncTask extends BaseTask
 {
+    use Concerns\SyncOnDemand;
+
     protected string $slug = 'google-calendar-sync';
     protected string $name = 'Sync Google Calendar';
-    protected ?string $cronExpression = '*/10 6-23 * * *';
     protected int $timeout = 30;
 
     public function handle(): ExecutionResult

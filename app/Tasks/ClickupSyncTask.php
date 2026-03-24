@@ -9,30 +9,11 @@ use Illuminate\Support\Facades\Log;
 
 class ClickupSyncTask extends BaseTask
 {
+    use Concerns\SyncOnDemand;
+
     protected string $slug = 'clickup-sync';
     protected string $name = 'Sync Tasks ClickUp';
-    protected ?string $cronExpression = '*/5 8-19 * * *';
     protected int $timeout = 30;
-
-    // Fora do horário comercial (20h-07h), sync a cada 4 horas
-    protected ?string $cronExpressionOffHours = '0 0,4,20 * * *';
-
-    public function getCronExpression(): ?string
-    {
-        $config = $this->getConfig();
-
-        if ($config && $config->cron_expression) {
-            return $config->cron_expression;
-        }
-
-        $hour = (int) now()->format('H');
-
-        if ($hour >= 8 && $hour < 20) {
-            return $this->cronExpression;
-        }
-
-        return $this->cronExpressionOffHours;
-    }
 
     public function handle(): ExecutionResult
     {

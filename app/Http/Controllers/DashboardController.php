@@ -7,12 +7,15 @@ use App\Models\CalendarEvent;
 use App\Models\ClickupTask;
 use App\Models\Execution;
 use App\Services\RunnableRegistry;
+use App\Services\TaskRegistry;
 use Carbon\Carbon;
 
 class DashboardController extends Controller
 {
     public function index()
     {
+        $this->dispatchSyncIfNeeded();
+
         $devs = collect(config('laraclaw.clickup.devs'));
         $now = Carbon::now();
         $monthStart = $now->copy()->startOfMonth();
@@ -245,5 +248,23 @@ class DashboardController extends Controller
             'calendarEventsUpcoming',
             'calendarLastSync',
         ));
+    }
+
+    private function dispatchSyncIfNeeded(): void
+    {
+        $cooldown = config('laraclaw.sync_cooldown_seconds', 180);
+        $tasks = TaskRegistry::onDemandSyncTasks();
+
+        foreach ($tasks as $task) {
+            if ($task->isActive() && $task->shouldSync($cooldown)) {
+                try {
+                    $task->run();
+                } catch (\Throwable $e) {
+                    \Illuminate\Support\Facades\Log::channel('laraclaw')->error(
+                        "On-demand sync failed for {$task->getSlug()}: {$e->getMessage()}"
+                    );
+                }
+            }
+        }
     }
 }

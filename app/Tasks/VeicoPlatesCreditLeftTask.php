@@ -8,9 +8,10 @@ use Illuminate\Support\Facades\Log;
 
 class VeicoPlatesCreditLeftTask extends BaseTask
 {
+    use Concerns\SyncOnDemand;
+
     protected string $slug = 'veicoplatescreditsleft';
     protected string $name = 'Créditos API Placas Veico';
-    protected ?string $cronExpression = '*/5 * * * *';
     protected int $timeout = 30;
 
     protected int $alertThreshold = 100;

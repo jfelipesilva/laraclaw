@@ -368,7 +368,7 @@
                             <tr class="border-b border-green-950">
                                 <td class="py-1">{{ $r['slug'] }}</td>
                                 <td class="{{ $r['type'] === 'agent' ? 'text-purple-400' : 'text-blue-400' }}">{{ strtoupper($r['type']) }}</td>
-                                <td class="text-green-700">{{ $r['cron'] ?? '-' }}</td>
+                                <td class="text-green-700">{{ $r['cron'] ?? 'on-demand' }}</td>
                                 <td class="{{ $r['last_status'] === 'error' ? 'text-red-400' : ($r['last_status'] === 'success' ? 'text-green-400' : 'text-green-800') }}">
                                     @if(!$r['active'])
                                         OFF
