@@ -31,6 +31,7 @@ class ClickupSyncTask extends BaseTask
 
         $synced = 0;
         $devIds = collect(config('laraclaw.clickup.devs'))->pluck('clickup_id')->all();
+        $seenIds = [];
 
         foreach ($tasks as $task) {
             $assigneeId = $task['assignees'][0]['id'] ?? null;
@@ -67,7 +68,15 @@ class ClickupSyncTask extends BaseTask
                 ]
             );
 
+            $seenIds[] = $task['id'];
             $synced++;
+        }
+
+        // Reconcilia exclusões: tarefas que sumiram da list API (excluídas no ClickUp)
+        // são removidas do banco para não ficarem fantasmas no painel.
+        $removed = 0;
+        if (!empty($seenIds)) {
+            $removed = ClickupTask::whereNotIn('clickup_id', $seenIds)->delete();
         }
 
         $durationMs = (int) ((microtime(true) - $startTime) * 1000);
@@ -75,6 +84,7 @@ class ClickupSyncTask extends BaseTask
         return ExecutionResult::success(
             content: json_encode([
                 'synced' => $synced,
+                'removed' => $removed,
                 'dev_ids_monitored' => count($devIds),
                 'total_tasks' => count($tasks),
             ]),
@@ -85,7 +95,8 @@ class ClickupSyncTask extends BaseTask
     public function onSuccess(ExecutionResult $result): void
     {
         $data = $result->json();
-        Log::channel('laraclaw')->info("ClickUp sync: {$data['synced']} tasks synced", $data);
+        $removed = $data['removed'] ?? 0;
+        Log::channel('laraclaw')->info("ClickUp sync: {$data['synced']} synced, {$removed} removed", $data);
     }
 
     public function onError(ExecutionResult $result): void
