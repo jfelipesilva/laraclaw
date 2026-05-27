@@ -25,7 +25,6 @@ return [
         'list_id' => env('LARACLAW_CLICKUP_LIST_ID', '901320287156'),
         'sync_interval' => 5, // minutos
         'devs' => [
-            ['name' => 'Pedro GrupoMestre',       'clickup_id' => 118032921],
             ['name' => 'Andrei da Silva Moreira', 'clickup_id' => 118035169],
             ['name' => 'Rafael',                  'clickup_id' => 170653166],
             ['name' => 'Guilherme Dias Tiede',    'clickup_id' => 3059278],
