@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LaraClaw Dashboard</title>
+    <title>Meu Assistente - Laraclaw</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap');
@@ -443,7 +443,7 @@
 
         {{-- Footer --}}
         <div class="mt-4 text-center text-[10px] text-green-900">
-            LaraClaw v0.1.0 | auto-refresh: 5min | data from clickup_tasks + executions
+            LaraClaw v0.1.0 | auto-refresh: 5min | data from clickup_tasks + executions | <a href="https://veicogestao.com.br/politica-de-privacidade/" target="_blank" rel="noopener" class="underline hover:text-green-500">política de privacidade</a>
         </div>
     </div>
     {{-- Modal Calendarios --}}
