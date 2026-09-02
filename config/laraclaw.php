@@ -27,7 +27,6 @@ return [
         'devs' => [
             ['name' => 'Andrei da Silva Moreira', 'clickup_id' => 118035169],
             ['name' => 'Rafael',                  'clickup_id' => 170653166],
-            ['name' => 'Guilherme Dias Tiede',    'clickup_id' => 3059278],
             ['name' => 'Bruno',                   'clickup_id' => 82198071],
         ],
     ],
