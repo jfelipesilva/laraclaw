@@ -58,6 +58,8 @@ class ClickupSyncTask extends BaseTask
                     'status_color' => $task['status']['color'] ?? null,
                     'assignee_id' => $assigneeId,
                     'assignee_name' => $task['assignees'][0]['username'] ?? null,
+                    'creator_id' => $task['creator']['id'] ?? null,
+                    'creator_name' => $task['creator']['username'] ?? null,
                     'priority' => $priority,
                     'project' => $task['list']['name'] ?? null,
                     'due_date' => $dueDate,

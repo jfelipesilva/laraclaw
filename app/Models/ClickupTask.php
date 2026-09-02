@@ -13,6 +13,8 @@ class ClickupTask extends Model
         'status_color',
         'assignee_id',
         'assignee_name',
+        'creator_id',
+        'creator_name',
         'priority',
         'project',
         'due_date',

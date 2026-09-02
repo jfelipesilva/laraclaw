@@ -188,6 +188,7 @@
                         <tr class="text-red-700 border-b border-red-900">
                             <th class="text-left pb-1">TASK</th>
                             <th class="text-left pb-1">RESPONSAVEL</th>
+                            <th class="text-left pb-1">CRIADOR</th>
                             <th class="text-left pb-1">STATUS</th>
                             <th class="text-left pb-1">PROJETO</th>
                             <th class="text-left pb-1">VENCIMENTO</th>
@@ -209,6 +210,7 @@
                                     @endif
                                 </td>
                                 <td class="py-1.5 pr-2 text-red-600">{{ $task->assignee_name ? explode(' ', $task->assignee_name)[0] : '-' }}</td>
+                                <td class="py-1.5 pr-2 text-red-700">{{ $task->creator_name ? explode(' ', $task->creator_name)[0] : '-' }}</td>
                                 <td class="py-1.5 pr-2 text-red-600">{{ $task->status }}</td>
                                 <td class="py-1.5 pr-2 text-red-700">{{ $task->project ?? '-' }}</td>
                                 <td class="py-1.5 pr-2 text-red-600">{{ $task->due_date->format('d/m/Y') }}</td>
